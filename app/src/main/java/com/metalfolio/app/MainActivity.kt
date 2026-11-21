@@ -108,9 +108,8 @@ class MainActivity : ComponentActivity() {
                             }
                             PullToRefreshBox(
                                 isRefreshing = busy,
-                                onRefresh = { refresh() },
-                                modifier = Modifier.weight(1f),
-                                enabled = key.isNotBlank()
+                                onRefresh = { if (key.isNotBlank()) refresh() },
+                                modifier = Modifier.weight(1f)
                             ) {
                                 LazyColumn(
                                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 2.dp),
