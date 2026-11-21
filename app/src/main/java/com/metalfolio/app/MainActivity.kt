@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,10 +106,25 @@ class MainActivity : ComponentActivity() {
                                 Text("WATCHLIST", color = muted, fontSize = 11.sp, letterSpacing = 1.5.sp, modifier = Modifier.weight(1f))
                                 Text("${visible.size} assets", color = muted, fontSize = 12.sp)
                             }
-                            LazyColumn(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.weight(1f)) {
-                                items(visible, key = { it.symbol }) { asset -> AssetRow(asset, quotes[asset.symbol], unit, displayCurrency) }
-                                if (visible.isEmpty()) item { Text("Nothing here yet. Add an asset in Customize.", color = muted, modifier = Modifier.padding(14.dp)) }
-                                item { Spacer(Modifier.height(12.dp)) }
+                            PullToRefreshBox(
+                                isRefreshing = busy,
+                                onRefresh = { refresh() },
+                                modifier = Modifier.weight(1f),
+                                enabled = key.isNotBlank()
+                            ) {
+                                LazyColumn(
+                                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 2.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    items(visible, key = { it.symbol }) { asset ->
+                                        AssetRow(asset, quotes[asset.symbol], unit, displayCurrency)
+                                    }
+                                    if (visible.isEmpty()) item {
+                                        Text("Nothing here yet. Add an asset in Customize.", color = muted, modifier = Modifier.padding(14.dp))
+                                    }
+                                    item { Spacer(Modifier.height(12.dp)) }
+                                }
                             }
                             Button(onClick = { screen = "edit" }, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp).height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = bg)) {
                                 Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("Customize watchlist", fontWeight = FontWeight.Bold)
