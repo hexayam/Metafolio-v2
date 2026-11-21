@@ -185,56 +185,239 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+private val assetCatalog = listOf(
+    Asset("XAU/USD", "Gold spot", "Metals"),
+    Asset("XAG/USD", "Silver spot", "Metals"),
+    Asset("XPT/USD", "Platinum spot", "Metals"),
+    Asset("XPD/USD", "Palladium spot", "Metals"),
+    Asset("VOO", "Vanguard S&P 500", "ETFs"),
+    Asset("QQQ", "Invesco Nasdaq-100", "ETFs"),
+    Asset("SPY", "SPDR S&P 500", "ETFs"),
+    Asset("IVV", "iShares Core S&P 500", "ETFs"),
+    Asset("VTI", "Vanguard Total Stock Market", "ETFs"),
+    Asset("VT", "Vanguard Total World", "ETFs"),
+    Asset("SCHD", "Schwab US Dividend Equity", "ETFs"),
+    Asset("IWM", "iShares Russell 2000", "ETFs"),
+    Asset("GLD", "SPDR Gold Shares", "ETFs"),
+    Asset("SLV", "iShares Silver Trust", "ETFs"),
+    Asset("VWRA", "Vanguard FTSE All-World (LSE)", "ETFs"),
+    Asset("CSPX", "iShares Core S&P 500 (LSE)", "ETFs"),
+    Asset("VUAA", "Vanguard S&P 500 UCITS (LSE)", "ETFs"),
+    Asset("AAPL", "Apple", "Stocks"),
+    Asset("MSFT", "Microsoft", "Stocks"),
+    Asset("NVDA", "NVIDIA", "Stocks"),
+    Asset("GOOGL", "Alphabet", "Stocks"),
+    Asset("AMZN", "Amazon", "Stocks"),
+    Asset("META", "Meta Platforms", "Stocks"),
+    Asset("TSLA", "Tesla", "Stocks"),
+    Asset("AMD", "AMD", "Stocks"),
+    Asset("AVGO", "Broadcom", "Stocks"),
+    Asset("BRK.B", "Berkshire Hathaway B", "Stocks"),
+    Asset("JPM", "JPMorgan Chase", "Stocks"),
+    Asset("V", "Visa", "Stocks"),
+    Asset("ASML", "ASML", "Stocks"),
+    Asset("TSM", "Taiwan Semiconductor", "Stocks"),
+    Asset("NVO", "Novo Nordisk", "Stocks")
+)
+
 @Composable private fun WatchlistScreen(assets: List<Asset>, back: () -> Unit, onUpdate: (List<Asset>) -> Unit) {
-    var showAdd by remember { mutableStateOf(false) }
-    var group by remember { mutableStateOf("Metals") }
+    var search by remember { mutableStateOf("") }
+    var group by remember { mutableStateOf("All") }
+    var customOpen by remember { mutableStateOf(false) }
     var symbol by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var quoteCurrency by remember { mutableStateOf("USD") }
-    var menu by remember { mutableStateOf(false) }
-    val suggestions = when(group) {
-        "Metals" -> listOf(Asset("XAU/USD", "Gold spot", group), Asset("XAG/USD", "Silver spot", group), Asset("XPT/USD", "Platinum spot", group))
-        "ETFs" -> listOf(Asset("VOO", "Vanguard S&P 500", group), Asset("QQQ", "Nasdaq 100 ETF", group), Asset("VT", "Vanguard Total World", group), Asset("VWRA", "Vanguard All-World (LSE)", group), Asset("CSPX", "iShares Core S&P 500 (LSE)", group))
-        else -> listOf(Asset("AAPL", "Apple", group), Asset("MSFT", "Microsoft", group), Asset("NVDA", "Nvidia", group), Asset("ASML", "ASML", group), Asset("TSM", "TSMC", group))
+    var customType by remember { mutableStateOf("Stocks") }
+    var typeMenu by remember { mutableStateOf(false) }
+
+    val results = assetCatalog.filter { candidate ->
+        (group == "All" || candidate.type == group) &&
+        (search.isBlank() || candidate.symbol.contains(search, ignoreCase = true) ||
+            candidate.label.contains(search, ignoreCase = true))
     }
-    Header("Your watchlist", back)
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("Choose what appears on your home screen. Swipe-free, distraction-free.", fontSize = 13.sp, color = muted) }
-        items(assets, key = { it.symbol }) { a ->
-            Surface(color = surface, shape = RoundedCornerShape(15.dp)) {
-                Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) { Text(a.symbol, color = ink, fontWeight = FontWeight.Bold); Text("${a.label} · ${a.type}", fontSize = 12.sp, color = muted) }
-                    IconButton(onClick = { onUpdate(assets.filterNot { it.symbol == a.symbol }) }) { Icon(Icons.Default.Close, "Remove ${a.symbol}", tint = muted) }
+
+    Header("Manage assets", back)
+    Column(Modifier.fillMaxSize()) {
+        OutlinedTextField(
+            value = search,
+            onValueChange = { search = it.take(70) },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            trailingIcon = {
+                if (search.isNotBlank()) {
+                    IconButton(onClick = { search = "" }) { Icon(Icons.Default.Close, "Clear search") }
                 }
+            },
+            label = { Text("Search name or ticker") },
+            placeholder = { Text("Gold, Apple, VOO...") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+        )
+        CategorySelector(group, listOf("All", "Metals", "ETFs", "Stocks")) { group = it }
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 22.dp),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
+            item {
+                Text(
+                    "DISCOVER • ${results.size} MATCHES",
+                    color = muted,
+                    fontSize = 11.sp,
+                    letterSpacing = 1.4.sp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
-        }
-        item {
-            HorizontalDivider(color = raised)
-            Text("ADD ASSET", color = accent, fontSize = 12.sp, letterSpacing = 2.sp, modifier = Modifier.padding(top = 14.dp))
-            Box {
-                OutlinedButton(onClick = { menu = true }, modifier = Modifier.fillMaxWidth()) { Text("Category: $group"); Spacer(Modifier.weight(1f)); Icon(Icons.Default.ArrowDropDown, null) }
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    listOf("Metals", "ETFs", "Stocks").forEach { category -> DropdownMenuItem(text = { Text(category) }, onClick = { group = category; menu = false }) }
-                }
-            }
-            suggestions.forEach { candidate ->
-                if (assets.none { it.symbol == candidate.symbol }) {
-                    TextButton(onClick = { onUpdate(assets + candidate) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.Add, null, Modifier.size(16.dp)); Spacer(Modifier.width(7.dp)); Text("${candidate.symbol}  ·  ${candidate.label}", modifier = Modifier.weight(1f), color = accent)
+            items(results, key = { "catalog_${it.symbol}" }) { candidate ->
+                val added = assets.any { it.symbol == candidate.symbol }
+                Surface(
+                    color = surface,
+                    shape = RoundedCornerShape(16.dp),
+                    onClick = {
+                        if (!added) onUpdate(assets + candidate)
+                        else onUpdate(assets.filterNot { it.symbol == candidate.symbol })
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(candidate.symbol, color = ink, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(candidate.label, color = muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                        if (added) {
+                            Icon(Icons.Default.CheckCircle, "Added; tap to remove", tint = good)
+                        } else {
+                            Icon(Icons.Default.AddCircleOutline, "Add ${candidate.symbol}", tint = accent)
+                        }
                     }
                 }
             }
-            OutlinedTextField(value = symbol, onValueChange = { symbol = it.uppercase(Locale.US).trim().take(30) }, label = { Text("Custom ticker (e.g. VUAA, 7203, XAU/USD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = name, onValueChange = { name = it.take(60) }, label = { Text("Display name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = quoteCurrency, onValueChange = { quoteCurrency = it.uppercase(Locale.US).take(6) }, label = { Text("Quoted currency (e.g. USD, EUR, GBP)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Text("For non-US listings, use the provider's exact symbol and currency. Availability depends on your plan.", fontSize = 11.sp, color = muted)
-            Button(onClick = {
-                val s = symbol.trim(); if (s.isNotBlank() && assets.none { it.symbol == s }) {
-                    onUpdate(assets + Asset(s, name.ifBlank { s }, group, quoteCurrency.ifBlank { "USD" }))
-                    symbol = ""; name = ""
+            if (results.isEmpty()) {
+                item {
+                    Text(
+                        "No preset matches. Use Add custom ticker below for any other supported market symbol.",
+                        color = muted,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(vertical = 14.dp)
+                    )
                 }
-            }, enabled = symbol.isNotBlank() && assets.none { it.symbol == symbol }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(15.dp)) { Text("Add custom symbol") }
-            Spacer(Modifier.height(20.dp))
+            }
+
+            item {
+                Spacer(Modifier.height(10.dp))
+                HorizontalDivider(color = raised)
+                TextButton(
+                    onClick = {
+                        customOpen = !customOpen
+                        if (customOpen && symbol.isBlank()) {
+                            symbol = search.trim().uppercase(Locale.US).take(30)
+                            customType = if (group == "All") "Stocks" else group
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(if (customOpen) Icons.Default.ExpandLess else Icons.Default.Add, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (customOpen) "Hide custom ticker" else "Add custom ticker", color = accent)
+                }
+            }
+            if (customOpen) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box {
+                            OutlinedButton(
+                                onClick = { typeMenu = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Category: $customType")
+                                Spacer(Modifier.weight(1f))
+                                Icon(Icons.Default.ArrowDropDown, null)
+                            }
+                            DropdownMenu(expanded = typeMenu, onDismissRequest = { typeMenu = false }) {
+                                listOf("Metals", "ETFs", "Stocks").forEach { type ->
+                                    DropdownMenuItem(
+                                        text = { Text(type) },
+                                        onClick = { customType = type; typeMenu = false }
+                                    )
+                                }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = symbol,
+                            onValueChange = { symbol = it.trim().uppercase(Locale.US).take(30) },
+                            label = { Text("Ticker symbol") },
+                            placeholder = { Text("e.g. VUAA or XAU/USD") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it.take(60) },
+                            label = { Text("Display name (optional)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        OutlinedTextField(
+                            value = quoteCurrency,
+                            onValueChange = { quoteCurrency = it.trim().uppercase(Locale.US).take(6) },
+                            label = { Text("Quote currency") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Button(
+                            onClick = {
+                                val ticker = symbol.trim()
+                                if (ticker.isNotBlank() && assets.none { it.symbol == ticker }) {
+                                    onUpdate(
+                                        assets + Asset(
+                                            ticker,
+                                            name.ifBlank { ticker },
+                                            customType,
+                                            quoteCurrency.ifBlank { "USD" }
+                                        )
+                                    )
+                                    symbol = ""
+                                    name = ""
+                                    customOpen = false
+                                    search = ""
+                                }
+                            },
+                            enabled = symbol.isNotBlank() && assets.none { it.symbol == symbol },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp)
+                        ) { Text("Add to watchlist") }
+                        Text(
+                            "Presets and custom symbols depend on your Twelve Data subscription. " +
+                                "For international listings, check the provider's exact symbol and quote currency.",
+                            color = muted,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+            item {
+                Spacer(Modifier.height(12.dp))
+                Text("YOUR WATCHLIST • ${assets.size} ASSETS", color = muted, fontSize = 11.sp, letterSpacing = 1.3.sp)
+            }
+            items(assets, key = { "owned_${it.symbol}" }) { a ->
+                Surface(color = surface, shape = RoundedCornerShape(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(a.symbol, color = ink, fontWeight = FontWeight.SemiBold)
+                            Text("${a.label} · ${a.type}", color = muted, fontSize = 11.sp)
+                        }
+                        IconButton(onClick = { onUpdate(assets.filterNot { it.symbol == a.symbol }) }) {
+                            Icon(Icons.Default.Close, "Remove ${a.symbol}", tint = muted)
+                        }
+                    }
+                }
+            }
         }
     }
 }
