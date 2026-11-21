@@ -4,7 +4,7 @@ plugins {
 }
 android {
     namespace = "com.metalfolio.app"
-    compileSdk = 37
+    compileSdk = 36
     defaultConfig {
         applicationId = "com.metalfolio.app"
         minSdk = 26
